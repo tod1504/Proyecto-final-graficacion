@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework.Media;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+//ejemplo para subida
 namespace ProyectoFinalCobito
 {
     public class Game1 : Microsoft.Xna.Framework.Game
