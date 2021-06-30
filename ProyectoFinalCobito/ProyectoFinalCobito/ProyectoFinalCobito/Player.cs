@@ -6,10 +6,10 @@ using Microsoft.Xna.Framework.Input;
 
 namespace ProyectoFinalCobito
 {
-    public class Player
+    public class Playerasdqwe
     {
         public Player()
         {
         }
     }
-}
+}//njdfngbjdnfbgjnfdjbgnjdkf
