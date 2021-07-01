@@ -8,14 +8,12 @@ namespace ProyectoFinalCobito
 {
     public class Player
     {
-        internal GamePadState lastSate;
-        internal Ship ship = new Ship();
+        internal GamePadState lastState;
+        internal Nave ship = new Nave();
         internal Asteroid[] asteroidList = new Asteroid[GameConstants.NumAsteroids];
-        internal Bullet[bulletList = new Bullet[GameConstants.NumBullets]];
-        internal interface score
-        {
+        internal Bullet[] bulletList = new Bullet[GameConstants.NumBull];
+        internal int score;
 
-        }
         Random random = new Random();
 
         public Player()
@@ -28,15 +26,14 @@ namespace ProyectoFinalCobito
             float timeDelta = (float)gameTime.ElapsedGameTime.TotalSeconds;
             //ADD VELOCITY TO THE CURRENT POSITION
             ship.Position += ship.Velocity;
-            //BLED OFF VELOVITY OVER TIME
-            ship.Velocity *= 0.95f;
-            for (int i = 0; i < GameConstants.NumBull; i++)
+
+            for (int i = 0; i < GameConstants.NumAsteroids; i++)
             {
                 asteroidList[i].Update(timeDelta);
             }
             for (int i = 0; i < GameConstants.NumBull; i++)
             {
-                if (bulletList[i].isActive)
+                if (bulletList[i].isAct)
                 {
                     bulletList[i].Update(timeDelta);
                 }
@@ -58,10 +55,10 @@ namespace ProyectoFinalCobito
                 }
                 yStar = (float)random.NextDouble() * GameConstants.PlayfieldSizeY;
                 asteroidList[i].position = new Vector3(xStar, yStar, 0.0f);
-                double angle = random.NextDouble * 2 * Math.PI;
+                double angle = random.NextDouble() * 2 * Math.PI;
                 asteroidList[i].direction.X = -(float)Math.Sin(angle);
                 asteroidList[i].direction.Y = (float)Math.Cos(angle);
-                asteroidList[i].speed = GameConstants.AsteroidMinSpeed + random.NextDouble * GameConstants.AsteroidMaxSpeed;
+                asteroidList[i].speed = GameConstants.AsteroidMinSpeed + (float)random.NextDouble() * GameConstants.AsteroidMaxSpeed;
                 asteroidList[i].isAct = true;
             }
         }
@@ -69,14 +66,14 @@ namespace ProyectoFinalCobito
         {
             //ADD ANOTHER BULLET. FIND AN INACTIVE BULLET SLOT AND USE IT
             //IF ALL BULLET SLOTS ARE USED, IGNORE THE USER INPUT
-            for (int i = 0; i < GameConstants.NumBullets; i++)
+            for (int i = 0; i < GameConstants.NumBull; i++)
             {
-                if (!bulletList[i].isActive)
+                if (!bulletList[i].isAct)
                 {
                     bulletList[i].direction = ship.RotationMatrix.Forward;
-                    bulletList[i].speed = GameConstants.BulletSpeedAdjustment;
+                    bulletList[i].speed = GameConstants.BullSpeedAdj;
                     bulletList[i].position = ship.Position + (200 * bulletList[i].direction);
-                    bulletList[i].isActive = true;
+                    bulletList[i].isAct = true;
                     score -= GameConstants.ShotPenalty;
                     return;
                 }
@@ -87,15 +84,14 @@ namespace ProyectoFinalCobito
             ship.Position = Vector3.Zero;
             ship.Velocity = Vector3.Zero;
             ship.Rotation = 0.0f;
-            ship.isActive = true;
+            ship.isAct = true;
             score -= GameConstants.WarpPenalty;
         }
-        internal bool CheckForBulletAsteroidCollision(float bulletRadius,
-float asteroidRadius)
+        internal bool CheckForBulletAsteroidCollision(float bulletRadius, float asteroidRadius)
         {
             for (int i = 0; i < asteroidList.Length; i++)
             {
-                if (asteroidList[i].isActive)
+                if (asteroidList[i].isAct)
                 {
                     BoundingSphere asteroidSphere =
                     new BoundingSphere(
@@ -103,15 +99,15 @@ float asteroidRadius)
                     GameConstants.AsteroidBoundingSphereScale);
                     for (int j = 0; j < bulletList.Length; j++)
                     {
-                        if (bulletList[j].isActive)
+                        if (bulletList[j].isAct)
                         {
                             BoundingSphere bulletSphere =
                             new BoundingSphere(bulletList[j].position,
                             bulletRadius);
                             if (asteroidSphere.Intersects(bulletSphere))
                             {
-                                asteroidList[i].isActive = false;
-                                bulletList[j].isActive = false;
+                                asteroidList[i].isAct = false;
+                                bulletList[j].isAct = false;
                                 score += GameConstants.KillBonus;
                                 return true; //no need to check other bullets
                             }
@@ -121,18 +117,17 @@ float asteroidRadius)
             }
             return false;
         }
-        internal bool CheckForShipAsteroidCollision(float shipRadius,
-float asteroidRadius)
+        internal bool CheckForShipAsteroidCollision(float shipRadius, float asteroidRadius)
         {
             //ship-asteroid collision check
-            if (ship.isActive)
+            if (ship.isAct)
             {
                 BoundingSphere shipSphere =
                 new BoundingSphere(ship.Position, shipRadius *
                 GameConstants.ShipBoundingSphereScale);
                 for (int i = 0; i < asteroidList.Length; i++)
                 {
-                    if (asteroidList[i].isActive)
+                    if (asteroidList[i].isAct)
                     {
                         BoundingSphere b =
                         new BoundingSphere(asteroidList[i].position,
@@ -142,8 +137,8 @@ float asteroidRadius)
                         {
                             //blow up ship
                             //soundExplosion3.Play();
-                            ship.isActive = false;
-                            asteroidList[i].isActive = false;
+                            ship.isAct = false;
+                            asteroidList[i].isAct = false;
                             score -= GameConstants.DeathPenalty;
                             return true;
                         }
@@ -153,32 +148,11 @@ float asteroidRadius)
             return false;
         }
     }
-
+}
+    /*
     protected void UpdateInput()
     {
-        currentState = GamePad.GetState(PlayerIndex.One);
-        lastState = player.lastState;
-        if (currentState.IsConnected)
-        {
-            if (player.ship.isActive)
-            {
-                player.ship.Update(currentState);
-                PlayEngineSound(currentState);
-            }
-            // In case you get lost, press B to warp back to the center.
-            if (IsButtonPressed(Buttons.B))
-            {
-                player.WarpToCenter();
-                soundHyperspaceActivation.Play();
-            }
-            //are we shooting?
-            if (player.ship.isActive && IsButtonPressed(Buttons.A))
-            {
-                player.ShootBullet();
-                soundWeaponsFire.Play();
-                bool isFiring = true;
-            }
-            player.lastState = currentState;
+        
         }
     }
 }
@@ -186,21 +160,7 @@ float asteroidRadius)
 
         internal void Update(GameTime gametime)
         {
-            float timeDelta = (float)gametime.ElapsedGameTime.TotalSeconds;
-            //ADD VELOCITY TO THE CURRENT POSITION
-            ship.Position += ship.Velocity;
-
-            for (int i = 0; i < GameConstants.NumAsteroids; i++)
-            {
-                asteroidList[i].Update(timeDelta);
-            }
-            for (int i = 0; i < GameConstants.NumBull; i++)
-            {
-                if (bulletList[i].isAct)
-                {
-                    bulletList[i].Update(timeDelta);
-                }
-            }
+            
         }
 protected override void Update(GameTime gametime)
 {
@@ -223,6 +183,6 @@ protected override void Update(GameTime gametime)
     base.Update(gametime);
 }
                     
-
+    */
         
     

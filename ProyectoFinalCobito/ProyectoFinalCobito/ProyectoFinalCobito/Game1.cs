@@ -16,7 +16,14 @@ namespace ProyectoFinalCobito
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
 
-        GamePadState lastState = GamePad.GetState(PlayerIndex.One);
+        Player player = new Player();
+
+        Viewport rightViewport;
+        Viewport leftViewport;
+        Viewport mainViewport;
+
+
+        GamePadState lastState;
 
         GamePadState currentState;
 
@@ -34,11 +41,11 @@ namespace ProyectoFinalCobito
         SoundEffect sExplo3;
         SoundEffect sWeapFire;
 
-        Model asteroidModel;
-        Model bulletModel;
+        //Model asteroidModel;
+        //Model bulletModel;
         Model shipModel;
-        Matrix[] asteroidTransforms;
-        Matrix[] bulletTransforms;
+        //Matrix[] asteroidTransforms;
+        //Matrix[] bulletTransforms;
         Matrix[] shipTransforms;
 
         //Componentes Visuales
@@ -59,10 +66,16 @@ namespace ProyectoFinalCobito
         int score = 0;
         Vector2 scrPos = new Vector2(10, 10);
 
+        float aspectRatio;
+
         public Game1()
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+
+            //Split screen
+            aspectRatio = (float)GraphicsDeviceManager.DefaultBackBufferWidth /
+                (2 * GraphicsDeviceManager.DefaultBackBufferHeight);
         }
 
         protected override void Initialize()
@@ -130,6 +143,15 @@ namespace ProyectoFinalCobito
 
             //Fuente
             font = Content.Load<SpriteFont>("Fonts/Lucida Console");
+
+
+            //Puertos de vista
+            mainViewport = GraphicsDevice.Viewport;
+            leftViewport = mainViewport;
+            rightViewport = mainViewport;
+            leftViewport.Width = leftViewport.Width / 2;
+            rightViewport.Width = rightViewport.Width / 2;
+            rightViewport.X = leftViewport.Width + 1;
         }
 
         protected override void UnloadContent()
@@ -138,86 +160,52 @@ namespace ProyectoFinalCobito
 
         protected override void Update(GameTime gameTime)
         {
-            float timeDelta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            player.Update(gameTime);
 
-            // Allows the game to exit
+            //ALLOWS THE GAME TO EXIT
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
                 this.Exit();
-
-            // Input
+            //GET SOME INPUT
             UpdateInput();
 
-            //Añade velocidad a la posicion 
-            ship.Position += ship.Velocity;
 
-            //Reduce velocidad con tiempo
-            ship.Velocity *= 0.95f;
-
-            //Update asteroid
-            for (int i = 0; i < GameConstants.NumAsteroids; i++)
+            if (player.CheckForBulletAsteroidCollision(bullMod.Meshes[0].BoundingSphere.Radius, astMod.Meshes[0].BoundingSphere.Radius))
             {
-                astList[i].Update(timeDelta);
+               sExplo2.Play();
             }
-
-            for (int i = 0; i < GameConstants.NumBull; i++)
-            {
-                if (bullList[i].isAct)
-                {
-                    bullList[i].Update(timeDelta);
-                }
-            }
-
-            //Colision bala asteroide
-            if (CheckBullAsCol(bullMod.Meshes[0].BoundingSphere.Radius,
-                astMod.Meshes[0].BoundingSphere.Radius))
-            {
-                sExplo2.Play();
-            }
-
-            //Colison nave asteroide
-            bool shipDes = CheckShipAstCol(shipModel.Meshes[0].BoundingSphere.Radius,
-                astMod.Meshes[0].BoundingSphere.Radius);
-            if (shipDes)
+            bool shipDestroyed = player.CheckForShipAsteroidCollision(shipModel.Meshes[0].BoundingSphere.Radius, astMod.Meshes[0].BoundingSphere.Radius);
+            if (shipDestroyed)
             {
                 sExplo3.Play();
             }
-
             base.Update(gameTime);
         }
 
         protected void UpdateInput()
         {
-            //Obtener estado de GamePad
-            GamePadState currState = GamePad.GetState(PlayerIndex.One);
-            if (currState.IsConnected)
+            currentState = GamePad.GetState(PlayerIndex.One);
+            lastState = player.lastState;
+            if (currentState.IsConnected)
             {
-                if (ship.isAct)
+                if (player.ship.isAct)
                 {
-                    ship.Update(currState);
-                    PlayEngineSound(currState);
+                    player.ship.Update(currentState);
+                    PlayEngineSound(currentState);
                 }
-
-                GamePad.SetVibration(PlayerIndex.One,
-                currState.Triggers.Right,
-                currState.Triggers.Right);
-
-
-                //Teletransporta la nave al centro
-                if (currState.Buttons.B == ButtonState.Pressed && lastState.Buttons.B == ButtonState.Released)
+                // In case you get lost, press B to warp back to the center.
+                if (IsButtonPressed(Buttons.B))
                 {
-                    WarptoCenter();
+                    player.WarpToCenter();
                     sHyperSpaceActivation.Play();
                 }
-
-                //Dispara
-                if (ship.isAct && IsButtonPressed(Buttons.A))
+                //are we shooting?
+                if (player.ship.isAct && IsButtonPressed(Buttons.A))
                 {
-                    ShootBullet();
+                    player.ShootBullet();
                     sWeapFire.Play();
                     bool isFiring = true;
                 }
-
-                lastState = currState;
+                player.lastState = currentState;
             }
         }
 
@@ -246,48 +234,50 @@ namespace ProyectoFinalCobito
             }
         }
 
+        
         protected override void Draw(GameTime gameTime)
         {
-            graphics.GraphicsDevice.Clear(Color.CornflowerBlue);
+            DrawPlayer(player, leftViewport);
+            base.Draw(gameTime);
+        }
 
-            
+        void DrawPlayer(Player player, Viewport viewport)
+        {
+            graphics.GraphicsDevice.Viewport = viewport;
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.Opaque);
             spriteBatch.Draw(stars, new Rectangle(0, 0, 800, 600), Color.White);
             spriteBatch.End();
 
-            if (ship.isAct)
+            Matrix shipTransformMatriz = player.ship.RotationMatrix * Matrix.CreateTranslation(player.ship.Position);
+            if (player.ship.isAct)
             {
-                Matrix shipTransformMatriz = ship.RotationMatrix * Matrix.CreateTranslation(ship.Position);
-                DrawModel(ship.Modelo, shipTransformMatriz, ship.Transforms);
+                DrawModel(shipModel, shipTransformMatriz, shipTransforms);
             }
 
             for (int i = 0; i < GameConstants.NumAsteroids; i++)
             {
+                Matrix astTrans = Matrix.CreateTranslation(player.asteroidList[i].position);
+
                 if (astList[i].isAct)
                 {
-                    Matrix astTrans = Matrix.CreateTranslation(astList[i].position);
                     DrawModel(astMod, astTrans, astTras);
                 }
             }
 
             for (int i = 0; i < GameConstants.NumBull; i++)
             {
-                if (bullList[i].isAct)
+                if (player.bulletList[i].isAct)
                 {
-                    Matrix bullTrans = Matrix.CreateTranslation(bullList[i].position);
+                    Matrix bullTrans = Matrix.CreateTranslation(player.bulletList[i].position);
                     DrawModel(bullMod, bullTrans, bullTras);
                 }
             }
             spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend);
-            spriteBatch.DrawString(font, "Score: " + score, scrPos, Color.LightGreen);
+            spriteBatch.DrawString(font, "Score: " + player.score, scrPos, Color.LightGreen);
             spriteBatch.End();
-
-
-
-            base.Draw(gameTime);
         }
 
-        bool CheckBullAsCol(float bRadio, float aRadio)
+        /*bool CheckBullAsCol(float bRadio, float aRadio)
         {
             for (int i = 0; i < astList.Length; i++)
             {
@@ -316,7 +306,7 @@ namespace ProyectoFinalCobito
             }
             return false;
         }
-
+        */
         public bool CheckShipAstCol(float sRadio, float aRadio)
         {
             if (ship.isAct)
