@@ -11,7 +11,7 @@ namespace ProyectoFinalCobito
         internal GamePadState lastSate;
         internal Ship ship = new Ship();
         internal Asteroid[] asteroidList = new Asteroid[GameConstants.NumAsteroids];
-        internal Bullet[bulletList = new Bullet[GameConstants.NumBullets];
+        internal Bullet[bulletList = new Bullet[GameConstants.NumBullets]];
         internal interface score
         {
 
@@ -202,25 +202,26 @@ float asteroidRadius)
                 }
             }
         }
-        protected override void Update(GameTime gametime)
-        {
-            //ALLOWS THE GAME TO EXIT
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
-                this.Exit();
-            //GET SOME INPUT
-            UpdateInput();
-            
-       
-            if (player.CheckForBulletAsteroidCollision(bulletModel.Meshes[0].BoundingSphere.Radius,asteroidModel.Meshes[0].BoudingSphere.Radius))
-            {
-                soundExplosion2.Play();
-            }
+protected override void Update(GameTime gametime)
+{
+    //ALLOWS THE GAME TO EXIT
+    if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed)
+        this.Exit();
+    //GET SOME INPUT
+    UpdateInput();
+
+
+    if (pplayer.CheckForBulletAsteroidCollision(bulletModel.Meshes[0].BoundingSphere.Radius, asteroidModel.Meshes[0].BoudingSphere.Radius))
+    {
+        soundExplosion2.Play();
+    }
     bool shipDestroyed = player.CheckForShipAsteroidCollision(shipModel.Meshes[0].BoundingSphere.Radius, asteroidModel.Meshes[0].BoundingSphere.Radius);
-                if (shipDestroyed)
-            {
-                soundExplosion3.Play();
-            }
-            base.Update(gametime);
+    if (shipDestroyed)
+    {
+        soundExplosion3.Play();
+    }
+    base.Update(gametime);
+}
                     
 
         
